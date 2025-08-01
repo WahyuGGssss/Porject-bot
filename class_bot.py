@@ -4,9 +4,17 @@
 import discord
 import random
 from discord.ext import commands
-from bot_logic import gen_pass
 import os
 import requests
+
+# Kita tambahkan folder untuk menyimpan laporan
+os.makedirs('./files/laporan_polusi', exist_ok=True)
+
+# Fungsi untuk menghasilkan kata sandi (dari bot_logic.py jika ada)
+def gen_pass(length):
+    char_list = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()'
+    password = ''.join(random.choice(char_list) for i in range(length))
+    return password
 
 description = '''An example bot to showcase the discord.ext.commands extension
 module.
@@ -22,7 +30,7 @@ bot = commands.Bot(command_prefix='$', description=description, intents=intents)
 
 @bot.event
 async def on_ready():
-    print(f'Logged in as {bot.user} (ID: {bot.user.id})') # type: ignore
+    print(f'Logged in as {bot.user} (ID: {bot.user.id})')
     print('------')
 
 # adding two numbers
@@ -55,11 +63,10 @@ async def exp(ctx, left: int, right: int):
 # # give local meme see python folder Data Science drive
 @bot.command()
 async def meme(ctx):
-    # try by your self 2 min
+    # Coba ganti dengan gambar meme yang ada di komputer Anda
     # img_name = random.choice(os.listdir('images'))
-    with open(f'images/meme1.jpg', 'rb') as f:
+    with open(f'meme/images.jpeg', 'rb') as f:
         picture = discord.File(f)
- 
     await ctx.send(file=picture)
 
 # duck and dog API
@@ -112,7 +119,7 @@ async def repeat(ctx, times: int, content='repeating...'):
     for i in range(times):
         await ctx.send(content)
         
-# password generator        
+# password generator 
 @bot.command()
 async def pw(ctx):
     await ctx.send(f'Kata sandi yang dihasilkan: {gen_pass(10)}')
@@ -149,39 +156,96 @@ async def dice(ctx):
 @bot.command()
 async def joined(ctx, member: discord.Member):
     """Says when a member joined."""
-    await ctx.send(f'{member.name} joined {discord.utils.format_dt(member.joined_at)}') # type: ignore
+    await ctx.send(f'{member.name} joined {discord.utils.format_dt(member.joined_at)}')
 
-#show local drive    
+#show local drive    
 @bot.command()
 async def local_drive(ctx):
     try:
-      folder_path = "./files"  # Replace with the actual folder path
-      files = os.listdir(folder_path)
-      file_list = "\n".join(files)
-      await ctx.send(f"Files in the files folder:\n{file_list}")
+        folder_path = "./files"
+        files = os.listdir(folder_path)
+        file_list = "\n".join(files)
+        await ctx.send(f"Files in the files folder:\n{file_list}")
     except FileNotFoundError:
-      await ctx.send("Folder not found.") 
+        await ctx.send("Folder not found.") 
 #show local file
 @bot.command()
 async def showfile(ctx, filename):
-  """Sends a file as an attachment."""
-  folder_path = "./files/"
-  file_path = os.path.join(folder_path, filename)
+    """Sends a file as an attachment."""
+    folder_path = "./files/"
+    file_path = os.path.join(folder_path, filename)
 
-  try:
-    await ctx.send(file=discord.File(file_path))
-  except FileNotFoundError:
-    await ctx.send(f"File '{filename}' not found.")
+    try:
+        await ctx.send(file=discord.File(file_path))
+    except FileNotFoundError:
+        await ctx.send(f"File '{filename}' not found.")
 # upload file to local computer
 @bot.command()
 async def simpan(ctx):
     if ctx.message.attachments:
         for attachment in ctx.message.attachments:
             file_name = attachment.filename
-            # file_url = attachment.url  IF URL
             await attachment.save(f"./files/{file_name}")
             await ctx.send(f"Menyimpan {file_name}")
     else:
         await ctx.send("Anda lupa mengunggah :(")
 
-bot.run('Token')
+# --- Fitur Tambahan untuk Mengatasi Polusi ---
+
+@bot.command()
+async def fakta_polusi(ctx):
+    """Memberikan fakta acak tentang polusi."""
+    fakta = [
+        "Plastik butuh waktu ratusan tahun untuk terurai. Kurangi penggunaannya!",
+        "Polusi udara bisa menyebabkan penyakit pernapasan. Yuk, tanam pohon!",
+        "Minyak bekas dari dapur tidak boleh dibuang ke saluran air karena bisa mencemari lingkungan.",
+        "Sampah elektronik (e-waste) mengandung bahan berbahaya. Jangan buang sembarangan!"
+    ]
+    await ctx.send(random.choice(fakta))
+
+@bot.command()
+async def tips_daurulang(ctx):
+    """Memberikan tips acak tentang daur ulang."""
+    tips = [
+        "Pisahkan sampah organik (sisa makanan) dan anorganik (plastik, kertas).",
+        "Sebelum membuang botol plastik, pastikan sudah bersih dan kering.",
+        "Kardus bekas bisa dijadikan kompos atau kerajinan tangan.",
+        "Cari bank sampah terdekat untuk menyetor sampah daur ulang."
+    ]
+    await ctx.send(random.choice(tips))
+    
+@bot.command()
+async def lapor_polusi(ctx, *, deskripsi: str = "Tidak ada deskripsi."):
+    """Melaporkan kejadian polusi dengan melampirkan foto."""
+    if ctx.message.attachments:
+        for attachment in ctx.message.attachments:
+            folder_laporan = "./files/laporan_polusi"
+            os.makedirs(folder_laporan, exist_ok=True)
+            
+            file_name = attachment.filename
+            file_path = os.path.join(folder_laporan, file_name)
+            await attachment.save(file_path)
+            
+            await ctx.send(f"Laporan polusi diterima dari {ctx.author.name}! Gambar `{file_name}` berhasil disimpan dengan deskripsi: '{deskripsi}'.")
+    else:
+        await ctx.send("Anda lupa melampirkan foto. Gunakan perintah ini dengan foto kejadian polusi!")
+
+@bot.command()
+async def janji_lingkungan(ctx, *, my_string: str):
+    """Mencatat janji atau komitmen anggota tentang lingkungan."""
+    with open('janji.txt', 'a', encoding='utf-8') as t:
+        t.write(f"\n{ctx.author.name}: {my_string}")
+    await ctx.send(f"Janji lingkungan dari {ctx.author.name} berhasil ditambahkan!")
+
+@bot.command()
+async def lihat_janji(ctx):
+    """Melihat semua janji lingkungan yang sudah dibuat."""
+    try:
+        with open('janji.txt', 'r', encoding='utf-8') as t:
+            document = t.read()
+            await ctx.send(f"**Janji Lingkungan Komunitas:**\n{document}")
+    except FileNotFoundError:
+        await ctx.send("Belum ada janji yang dibuat.")
+
+
+bot.run('Token😁😁')
